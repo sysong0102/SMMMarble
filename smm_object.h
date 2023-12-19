@@ -18,6 +18,14 @@
 
 #define SMMNODE_TYPE_MAX			7 //타입이 몇개인지  
 
+typedef enum smmObjType
+{
+	smmObjType_board = 0,
+	smmObjType_card,
+	smmObjType_grade
+	
+}smmObjType_e;
+
 
 /* node type :
     lecture,
@@ -42,11 +50,12 @@
     C-
 */
 
+/*
 char* smmObj_getNodeName(int node_nr);
 int smmObj_getNodeType(int node_nr);
 int smmObj_getNodeCredit(int node_nr);
 int smmObj_getNodeEnergy(int node_nr);
-
+*/
 //object generation
 void smmObj_genNode(char* name, int type, int credit, int energy);
 //member retrieving

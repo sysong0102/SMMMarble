@@ -29,41 +29,83 @@ char* smmObj_getTypeName(int type)
 	return (char*)smmNodeName[type];
 }
 
+typedef enum smmObjGrade
+{
+	smmObjGrade_Ap = 0,
+	smmObjGrade_A0,
+	smmObjGrade_Am,
+	smmObjGrade_Bp,
+	smmObjGrade_B0,
+	smmObjGrade_Bm,
+	smmObjGrade_Cp,
+	smmObjGrade_C0,
+	smmObjGrade_Cm
+}smmObjGrade_e;
+
+//1. 구조체 형식 정의
+typedef struct smmObject
+{
+	char name[MAX_CHARNAME];
+	smmObjType_e objType;
+	int type;
+	int credit;
+	int energy;
+	smmObjGrade_e grade;
+}smmObject_t;
+
+//2. 구조체 변수 정의 
+//static smmObject_t smm_node[MAX_NODE];
+
+#if 0 
 static char smmObj_name[MAX_NODE][MAX_CHARNAME];
 static int smmObj_type[MAX_NODE];
 static int smmObj_credit[MAX_NODE];
 static int smmObj_energy[MAX_NODE];
-static int smmObj_noNode=0;
+#endif
 
+// static int smmObj_noNode=0;
+
+//3. 관련 함수 변경 
 //object generation
-void smmObj_genNode(char* name, int type, int credit, int energy)
+void* smmObj_genObject(char* name, smmObjType_e objType, int type, int credit, int energy, smmObjGrade_e grade)
 {
-	strcpy(smmObj_name[smmObj_noNode], name);
-    smmObj_type[smmObj_noNode] = type;
-    smmObj_credit[smmObj_noNode] = credit;
-    smmObj_energy[smmObj_noNode] = energy;
+	
+	smmObject_t* ptr;
+	
+	ptr = (smmObject_t*)malloc(sizeof(smmObject_t));
+	
+    strcpy(ptr->name, name);
+    ptr->objType = objType;
+    ptr->type = type;
+    ptr->credit = credit;
+    ptr->energy = energy;
+    ptr->grade = grade;
     
-	smmObj_noNode++;
+    return ptr;
 }
 
-char* smmObj_getNodeName(int node_nr)
+char* smmObj_getNodeName(void* obj)
 {
-	return smmObj_name[smmObj_noNode];
+	smmObject_t* ptr = (smmObject_t*)obj;
+	return ptr->name;
 }
 
-int smmObj_getNodeType(int node_nr)
+int* smmObj_getNodeType(int* obj)
 {
-	return smmObj_type[node_nr];
+	smmObject_t* ptr = (smmObject_t*)obj;
+	return ptr->type;
 }
 
-int smmObj_getNodeCredit(int node_nr)
+int* smmObj_getNodeCredit(int* obj)
 {
-	return smmObj_credit[node_nr];
+	smmObject_t* ptr = (smmObject_t*)obj;
+	return ptr->credit;
 }
 
-int smmObj_getNodeEnergy(int node_nr)
+int smmObj_getNodeEnergy(int* obj)
 {
-	return smmObj_energy[node_nr];
+	smmObject_t* ptr = (smmObject_t*)obj;
+	return ptr->energy;
 }
 
 #if 0
