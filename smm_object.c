@@ -39,6 +39,7 @@ typedef struct smmObject
 	int credit; //학점 
 	int energy; //에너지 
 	smmObjGrade_e grade; //등급 
+	
 }smmObject_t;
 
 
@@ -73,13 +74,12 @@ void* smmObj_genObject(char* name, smmObjType_e objType, int type, int credit, i
     return ptr;
 }
 
-
-
 char* smmObj_getNodeName(void* obj)
 {
 	smmObject_t* ptr = (smmObject_t*)obj;
 	return ptr->name;
 }
+
 
 int smmObj_getNodeType(void* obj)
 {
