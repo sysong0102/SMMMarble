@@ -97,7 +97,7 @@ void generatePlayers(int n, int initEnergy) //generate a new player
 		//player_position[i] = initEnergy;
 		cur_player[i].energy = initEnergy;
 		cur_player[i].accumCredit = 0;
-		cur_player[i].flag_graduate = 0;
+		cur_player[i].flag_graduate = 0; // 이게 0일 동안 게임 계속 진행 
 	}
 	
 }
@@ -154,46 +154,113 @@ void actionNode(int player)
     {
         //case lecture:
         case SMMNODE_TYPE_LECTURE:
-        	if(cur_player[player].energy < smmObj_getNodeEnergy(boardPtr)) //현재 에너지가 소요에너지 이상 있는 경우 
-        		if(1) //수강한 적 있는 경우
+        	{
+        		if(cur_player[player].flag_graduate==1)
         		{
-        			printf("%s cannot take classes because %s has a history of taking classes in the past\n", cur_player[player].name);
-				}
-				else{
-				
-					int input_course_answer;
-					printf("Do you want to take the course?\n");
-					printf("Yes : Please input a number 1\nNo : Please input a number 0\n");
-					printf("Yes or no? :");
-					scanf("%d", &input_course_answer);
+        			if(cur_player[player].energy < smmObj_getNodeEnergy(boardPtr)) //현재 에너지가 소요에너지 이상 있는 경우 
+        			{
+        				
+						if(1) //수강한 적 있는 경우
+        				{
+        					printf("%s cannot take classes because %s has a history of taking classes in the past\n", cur_player[player].name);
+						}
+						
+						else
+						{
+							int flag_play = 1;
+							while(flag_play == 1)
+							{
+								char input[50];
+							
+								printf(" %s %s (credit:%i, energy:%i) starts! are you going to join? or drop? :", smmObj_getNodeName(boardPtr), smmObj_getTypeName(smmObj_getNodeType(boardPtr)), smmObj_getNodeCredit(boardPtr), smmObj_getNodeEnergy(boardPtr));
+							
+								scanf("%s", &input);
 					
-					if(input_course_answer == 1)
-					{
-						//플레이어의 학점에 강의의 학점이 추가됨, 에너지는 소모됨 
-						cur_player[player].accumCredit += smmObj_getNodeCredit(boardPtr);
-						cur_player[player].energy -=  smmObj_getNodeEnergy(boardPtr);
-						//성적이 랜덤으로 나옴
-						gradePtr = smmObj_genObject(name, smmObjType_grade ,0, smmObj_getNodeCredit(boardPtr), 0, rand()%(smmObjGrade_Cm+1));
-        				smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
-        				break;
+								if(strcmp(input, "join") == 0)
+								{
+									//플레이어의 학점에 강의의 학점이 추가됨, 에너지는 소모됨 
+									cur_player[player].accumCredit += smmObj_getNodeCredit(boardPtr);
+									cur_player[player].energy -=  smmObj_getNodeEnergy(boardPtr);
+									//성적이 랜덤으로 나옴
+									gradePtr = smmObj_genObject(name, smmObjType_grade ,0, smmObj_getNodeCredit(boardPtr), 0, rand()%(smmObjGrade_Cm+1));
+        							smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
+        						
+        							printf(" %s successfully takes the lecture %s with grade %s (average : %i), remained energy : %i)", cur_player[player].name, smmObj_getNodeName(boardPtr), gradeStrings[smmObj_getNodeGrade(gradePtr)], 0 , cur_player[player].energy);
+									//grade average 구하기  
+									flag_play = 0;
+								}
+								else if(strcmp(input, "drop") == 0)
+								{
+									//다음 칸으로 넘어감 
+									printf("%s dropped the lecture.", cur_player[player].name); 
+									printf("-> Player %s drops the lecture %s!", cur_player[player].name, smmObj_getNodeName(boardPtr));
+									flag_play = 0;
+								}
+								else
+								{
+									printf("-> invalid input! input \"drop\" or \"join\"!");
+								}
+							}
+								
+						}
 					}
-					else
-						//다음 칸으로 넘어감 
-						printf("%s dropped the lecture.", cur_player[player].name); 
-						break;
-				}
+				break;
+			}
+        	
+        	
         	
         case SMMNODE_TYPE_RESTAURANT:
         {
-        	printf("%s have arrived restaurant.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(boardPtr));
-        	cur_player[player].energy +=  smmObj_getNodeEnergy(boardPtr);
-        	break;
-		}
-        	
-        	
+        	if (cur_player[player].flag_graduate == 0)
+        	{
+        		cur_player[player].energy +=  smmObj_getNodeEnergy(boardPtr);
+        		printf("%s have arrived restaurant.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(boardPtr));
+        		
+	
+			}
+			break;
+		
+		}	
+		
+        case SMMNODE_TYPE_GOTOLAB:
+		{
+			//실험실칸으로 이동
+			
+
+     		cur_player[player].position = 8;
+     		cur_player[player].flag_graduate = 1;
+			
+     		printf("%s go to %s)\n", cur_player[player].name, smmObj_getNodeName(boardPtr));
+			printf("OMG! This is experiment time!! Player %s goes to the lab.", cur_player[player].name);
+			break;
+		}	
+        
         case SMMNODE_TYPE_LABORATORY:
         {
-        	break;	
+        	if(cur_player[player].flag_graduate==1)
+        	//주사위 굴려서 기준값 이상이 되면 탈출
+        	{
+				int threshold = rollDie();
+				int challenge_value = rollDice();
+				int rolldice_num;
+				printf("-> Experiment time! Let's see if you can satisfy professor (threshold: %i)\nPress any key to roll a die (press g to see grade):", threshold); 
+				scanf("%i", &rolldice_num);
+        		if(challenge_value >= threshold)
+        		{
+        			//탈출 
+        			cur_player[player].energy -=  smmObj_getNodeEnergy(boardPtr);
+        			printf("-> Experiment result : %i, success! %s can exit this lab!", challenge_value, cur_player[player].name);
+        			
+				}
+				else
+				{
+					cur_player[player].energy -=  smmObj_getNodeEnergy(boardPtr);
+					cur_player[player].flag_graduate = 0;
+					printf("-> Experiment result : %i, fail T_T. %s needs more experiment......", challenge_value, cur_player[player].name);
+        			
+				}
+			}		
+        	break;
 		}
         
         	
@@ -204,33 +271,29 @@ void actionNode(int player)
         	cur_player[player].energy +=  smmObj_getNodeEnergy(boardPtr);
         	break;
         }
-		case SMMNODE_TYPE_GOTOLAB:
-		{
-			break;
-		}
+		
 		
 			
 		case SMMNODE_TYPE_FOODCHANCE:
 		{
 				
 			int Food_Card = rand()%(food_nr);
-			void *FoodCardConfig = smmdb_getData(LISTNO_FESTCARD, Food_Card);
-			cur_player[player].energy +=  smmObj_getNodeEnergy(FoodCardConfig);
-			printf("%s have arrived home.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(FoodCardConfig));
+			void *foodPtr = smmdb_getData(LISTNO_FESTCARD, Food_Card);
+			cur_player[player].energy +=  smmObj_getNodeEnergy(foodPtr);
+			printf("%s have arrived home.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(foodPtr));
         	break;
         }	
+        
 		case SMMNODE_TYPE_FESTIVAL:
 		{
 			int Fest_Card = rand()%(festival_nr);
-			void *FestCardConfig = smmdb_getData(LISTNO_FESTCARD, Fest_Card);
-			cur_player[player].energy +=  smmObj_getNodeEnergy(boardPtr);
-			printf("%s have arrived festival.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(FestCardConfig));
+			void *festivalPtr = smmdb_getData(LISTNO_FESTCARD, Fest_Card);
+			cur_player[player].energy +=  smmObj_getNodeEnergy(festivalPtr);
+			printf("%s have arrived festival.\nYou can replenish %d energy :)\n", cur_player[player].name, smmObj_getNodeEnergy(festivalPtr));
         	break;
 		}
 		
 
-		
-			
         default:
             break;
     }
@@ -238,7 +301,8 @@ void actionNode(int player)
 
 
 
-int main(int argc, const char * argv[]) {
+int main(int argc, const char * argv[]) 
+{
     
     FILE* fp;
     char name[MAX_CHARNAME];
@@ -282,12 +346,11 @@ int main(int argc, const char * argv[]) {
     for(i = 0; i<board_nr;i++)
     {
     	void *boardObj =smmdb_getData(LISTNO_NODE, i); 
-    	printf("node %i : %s, %i(%s), credit %i, energy %i\n", i, smmObj_getNodeName(boardObj), smmObj_getNodeType(boardObj), smmObj_getTypeName(smmObj_getNodeType(boardObj)), smmObj_getNodeCredit(boardObj), smmObj_getNodeEnergy(boardObj));
+    	printf("=> %i. %s, %i(%s), credit %i, energy %i\n", i, smmObj_getNodeName(boardObj), smmObj_getNodeType(boardObj), smmObj_getTypeName(smmObj_getNodeType(boardObj)), smmObj_getNodeCredit(boardObj), smmObj_getNodeEnergy(boardObj));
     
 	}
     /*특정 유형을 찍고 싶으면 printf("(%s)", smmObj_getType */
-    
-    #if 0
+
     //2. food card config 
     if ((fp = fopen(FOODFILEPATH,"r")) == NULL)
     {
@@ -296,15 +359,23 @@ int main(int argc, const char * argv[]) {
     }
     
     printf("\n\nReading food card component......\n");
-    while () //read a food parameter set
+    while (fscanf(fp, "%s %i", name, &energy) == 2) //read a food parameter set
     {
         //store the parameter set
+        void *foodObj = smmObj_genObject(name, smmObjType_card, SMMNODE_TYPE_FOODCHANCE, 0, energy, 0);
+        smmdb_addTail(LISTNO_FOODCARD, foodObj); //0번에다 새로 생성한 객체를 집어넣음 
         
+        food_nr++;
     }
     fclose(fp);
     printf("Total number of food cards : %i\n", food_nr);
     
+    for(i = 0; i<food_nr;i++)
+    {
+    	void *foodObj =smmdb_getData(LISTNO_FOODCARD, i); 
+    	printf("=> %i. %s, charge : %i\n", i, smmObj_getNodeName(foodObj), smmObj_getNodeEnergy(foodObj));
     
+	}
     
     //3. festival card config 
     if ((fp = fopen(FESTFILEPATH,"r")) == NULL)
@@ -314,15 +385,23 @@ int main(int argc, const char * argv[]) {
     }
     
     printf("\n\nReading festival card component......\n");
-    while () //read a festival card string
+    while (fscanf(fp, "%s %i", name) == 1) //read a food parameter set
     {
         //store the parameter set
+        void *festivalObj = smmObj_genObject(name, smmObjType_card, SMMNODE_TYPE_FESTIVAL, 0, 0, 0);
+        smmdb_addTail(LISTNO_FESTCARD, festivalObj); //0번에다 새로 생성한 객체를 집어넣음 
+        
+        festival_nr++;
     }
     fclose(fp);
     printf("Total number of festival cards : %i\n", festival_nr);
-    #endif  
     
+    for(i = 0; i<festival_nr;i++)
+    {
+    	void *festivalObj =smmdb_getData(LISTNO_FOODCARD, i); 
+    	printf("=> %i. %s\n", i, smmObj_getNodeName(festivalObj));
     
+	}
     //2. Player configuration ---------------------------------------------------------------------------------
     
     do
@@ -334,7 +413,7 @@ int main(int argc, const char * argv[]) {
 	}
     while (player_nr < 0 || player_nr > MAX_PLAYER);
 
-cur_player = (player_t*)malloc(player_nr*sizeof(player_t));
+	cur_player = (player_t*)malloc(player_nr*sizeof(player_t));
     generatePlayers(player_nr, initEnergy);
     
     
@@ -348,7 +427,7 @@ cur_player = (player_t*)malloc(player_nr*sizeof(player_t));
         
         //4-2. die rolling (if not in experiment)
         die_result = rolldie(turn);
-        
+
         //4-3. go forward
         goForward(turn, die_result);
 
@@ -358,7 +437,10 @@ cur_player = (player_t*)malloc(player_nr*sizeof(player_t));
         //4-5. next turn
         turn = (turn + 1) %player_nr;
     }
+    
     free(cur_player);
     system("PAUSE");
+    
+    
     return 0;
 }

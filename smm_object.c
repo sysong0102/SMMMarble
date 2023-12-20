@@ -41,6 +41,7 @@ typedef struct smmObject
 	smmObjGrade_e grade; //등급 
 }smmObject_t;
 
+
 //2. 구조체 변수 정의 
 //static smmObject_t smm_node[MAX_NODE];
 
@@ -71,6 +72,8 @@ void* smmObj_genObject(char* name, smmObjType_e objType, int type, int credit, i
     
     return ptr;
 }
+
+
 
 char* smmObj_getNodeName(void* obj)
 {
