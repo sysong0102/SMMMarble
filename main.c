@@ -52,12 +52,13 @@ void printGrades(int player); //print grade history of the player
 void goForward(int player, int step); //make player go "step" steps on the board (check if player is graduated)
 void printPlayerStatus(void); //print all player status at the beginning of each turn
 float calcAverageGrade(int player); //calculate average grade of the player
-smmObjGrade_e takeLecture(int player, char *lectureName, int credit); //take the lecture (insert a grade of the player)
-void* findGrade(int player, char *lectureName); //find the grade from the player's grade history
+smmObjGrade_e takeLecture(int player, char *name, int type, int credit, int energy); //take the lecture (insert a grade of the player)
+//void* findGrade(int player, char *lectureName); //find the grade from the player's grade history
 void printGrades(int player); //print all the grade history of the player
 
 
 const char* gradeStrings[] = {"A+", "A0", "A-", "B+", "B0", "B-", "C+", "C0", "C-"};
+const float gradeScores[] = {4.3, 4.0, 3.7, 3.4, 3.1, 2.8, 2.5, 2.2, 1.9};
 
 int isGraduated(void)
 {
@@ -76,9 +77,35 @@ int isGraduated(void)
 float calcAverageGrade(int player)
 {
 	float TotalGrade = 0;
+	int course_nr = smmdb_len(LISTNO_OFFSET_GRADE + player);
+	//TotalGrade = 전체 점수 합 % smmdb_len(LISTNO_OFFSET_GRADE + player);
+	if(course_nr == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		int i;
+		for (i = 0; i < course_nr; i++) 
+		{
+      	  	void *gradePtr = smmdb_getData(LISTNO_OFFSET_GRADE + player, i);
+      	  	smmObjGrade_e grade = smmObj_getNodeGrade(gradePtr);
+        	float grade_Value = gradeScores[grade];
+        	//float gradeValue = smmObj_getGradeValue(smmObj_getNodeGrade(gradePtr));
+        	TotalGrade += grade_Value;
+    	}
+    	float average_of_grade = TotalGrade / course_nr;
+    	return (average_of_grade);
+	}
 	
 }
 
+/*
+void* findGrade(int player, char *lectureName)
+{
+	
+}
+*/
 void printGrades(int player)
 {
 	int i;
@@ -87,7 +114,7 @@ void printGrades(int player)
 	{
 		gradePtr = smmdb_getData(LISTNO_OFFSET_GRADE + player, i);
 		printf("=> %s (credit:%i) : %s\n", smmObj_getNodeName(gradePtr), smmObj_getNodeCredit(gradePtr), gradeStrings[smmObj_getNodeGrade(gradePtr)]);
-
+ 	}
 } //어떤 강의를 들었는 지 확인 가능 -> 이 과목을 들었으면 다시 안듣도록 하는 조건문 이용  
 
 
@@ -139,7 +166,7 @@ int rolldie(int player)
     c = getchar();
     fflush(stdin);
     
-#if 1
+
     if (c == 'g')
     {
     	int i;
@@ -157,20 +184,11 @@ int rolldie(int player)
     }		 
     
 
-#endif
+
     
     return (roll_die_result);
 }
 
-/*
-int rollDice() {
-    return rand() % MAX_DIE + 1; // 주사위를 굴리는 함수 
-}
-*/
-
-/*
-int do_experiment
-*/
 
 void goForward(int player, int step)
 {
@@ -180,11 +198,69 @@ void goForward(int player, int step)
     {
     	cur_player[player].position -= 16;
 	}
-    boardPtr = smmdb_getData(LISTNO_NODE, cur_player[player].position );
+    boardPtr = smmdb_getData(LISTNO_NODE, cur_player[player].position);
     
     printf("%s go to node %i (name: %s)\n", cur_player[player].name, cur_player[player].position, smmObj_getNodeName(boardPtr));
 }
 
+smmObjGrade_e takeLecture(int player, char *name, int type, int credit, int energy)
+{
+	
+	if(cur_player[player].flag_graduate==0)
+        		{
+        			if(cur_player[player].energy < energy) //현재 에너지가 소요에너지 이상 있는 경우 
+        			{
+        				
+						if(1) //수강한 적 있는 경우
+        				{
+        					printf("%s cannot take classes because %s has a history of taking classes in the past\n", cur_player[player].name);
+						}
+						
+						else
+						{
+							int flag_play = 1;
+							while(flag_play == 1)
+							{
+								char input[50];
+							
+								printf(" %s %s (credit:%i, energy:%i) starts! are you going to join? or drop? :", name, smmObj_getTypeName(type), credit, energy);
+							
+								scanf("%s", &input);
+					
+								if(strcmp(input, "join") == 0)
+								{
+									//플레이어의 학점에 강의의 학점이 추가됨, 에너지는 소모됨 
+									cur_player[player].accumCredit += credit;
+									cur_player[player].energy -=  energy;
+									//성적이 랜덤으로 나옴
+									void *gradePtr = smmObj_genObject(name, smmObjType_grade ,0, credit, 0, rand()%(smmObjGrade_Cm+1));
+        							smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
+        						
+        							printf(" %s successfully takes the lecture %s with grade %s (average : %i), remained energy : %i)", cur_player[player].name, name, gradeStrings[smmObj_getNodeGrade(gradePtr)], 0 , cur_player[player].energy);
+									//grade average 구하기  
+									flag_play = 0;
+								}
+								else if(strcmp(input, "drop") == 0)
+								{
+									//다음 칸으로 넘어감 
+									printf("%s dropped the lecture.", cur_player[player].name); 
+									printf("-> Player %s drops the lecture %s!", cur_player[player].name, name);
+									flag_play = 0;
+								}
+								else
+								{
+									printf("-> invalid input! input \"drop\" or \"join\"!");
+								}
+							}
+								
+						}
+					}
+					else
+					{
+						printf("-> %s is too hungry to take the lecture %s (remained:%i, required:%i)",cur_player[player].name, name, cur_player[player].energy, energy );
+					}
+					
+}
 
   
 
@@ -201,62 +277,10 @@ void actionNode(int player)
     {
         //case lecture:
         case SMMNODE_TYPE_LECTURE:
-        	{
-        		if(cur_player[player].flag_graduate==1)
-        		{
-        			if(cur_player[player].energy < smmObj_getNodeEnergy(boardPtr)) //현재 에너지가 소요에너지 이상 있는 경우 
-        			{
-        				
-						if(1) //수강한 적 있는 경우
-        				{
-        					printf("%s cannot take classes because %s has a history of taking classes in the past\n", cur_player[player].name);
-						}
-						
-						else
-						{
-							int flag_play = 1;
-							while(flag_play == 1)
-							{
-								char input[50];
-							
-								printf(" %s %s (credit:%i, energy:%i) starts! are you going to join? or drop? :", smmObj_getNodeName(boardPtr), smmObj_getTypeName(smmObj_getNodeType(boardPtr)), smmObj_getNodeCredit(boardPtr), smmObj_getNodeEnergy(boardPtr));
-							
-								scanf("%s", &input);
-					
-								if(strcmp(input, "join") == 0)
-								{
-									//플레이어의 학점에 강의의 학점이 추가됨, 에너지는 소모됨 
-									cur_player[player].accumCredit += smmObj_getNodeCredit(boardPtr);
-									cur_player[player].energy -=  smmObj_getNodeEnergy(boardPtr);
-									//성적이 랜덤으로 나옴
-									gradePtr = smmObj_genObject(name, smmObjType_grade ,0, smmObj_getNodeCredit(boardPtr), 0, rand()%(smmObjGrade_Cm+1));
-        							smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
-        						
-        							printf(" %s successfully takes the lecture %s with grade %s (average : %i), remained energy : %i)", cur_player[player].name, smmObj_getNodeName(boardPtr), gradeStrings[smmObj_getNodeGrade(gradePtr)], 0 , cur_player[player].energy);
-									//grade average 구하기  
-									flag_play = 0;
-								}
-								else if(strcmp(input, "drop") == 0)
-								{
-									//다음 칸으로 넘어감 
-									printf("%s dropped the lecture.", cur_player[player].name); 
-									printf("-> Player %s drops the lecture %s!", cur_player[player].name, smmObj_getNodeName(boardPtr));
-									flag_play = 0;
-								}
-								else
-								{
-									printf("-> invalid input! input \"drop\" or \"join\"!");
-								}
-							}
-								
-						}
-					}
-					else
-					{
-						printf("-> %s is too hungry to take the lecture %s (remained:%i, required:%i)",cur_player[player].name, smmObj_getNodeName(boardPtr), cur_player[player].energy, smmObj_getNodeEnergy(boardPtr) );
-					}
-				break;
-			}
+        {
+        	takeLecture(player, name, type, smmObj_getNodeCredit(boardPtr), smmObj_getNodeEnergy(boardPtr));
+			break;
+		}
         	
         	
         	
@@ -357,7 +381,7 @@ void actionNode(int player)
 			cur_player[player].energy +=  smmObj_getNodeEnergy(festivalPtr);
 			
 			printf("-> MISSION : %s !!\n(Press any key when mission is ended.)", smmObj_getNodeName(festivalPtr));
-			scanf("%s",fest_mission_answer );
+			scanf("%s",&fest_mission_answer );
 			
 			break;
 		}
