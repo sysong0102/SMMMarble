@@ -141,8 +141,16 @@ void printPlayerStatus(void)//플레이어의 상태를 출력하는 함수
 	printf("========================== PLAYER STATUS ==========================\n");
     for(i=0;i<player_nr;i++)
     {
-    	void *boardPtr = smmdb_getData(LISTNO_NODE, cur_player[i].position);
-		printf("%s at %i.%s, credit: %i, energy: %i\n", cur_player[i].name, cur_player[i].position ,smmObj_getNodeName(boardPtr), cur_player[i].accumCredit, cur_player[i].energy );
+    	if(cur_player[i].Lab_flag==1) // 실험중일때는 표시하기 
+    	{
+    		void *boardPtr = smmdb_getData(LISTNO_NODE, cur_player[i].position);
+			printf("%s at %i.%s(exp), credit: %i, energy: %i\n", cur_player[i].name, cur_player[i].position ,smmObj_getNodeName(boardPtr), cur_player[i].accumCredit, cur_player[i].energy );
+		}
+		else
+		{
+			void *boardPtr = smmdb_getData(LISTNO_NODE, cur_player[i].position);
+			printf("%s at %i.%s, credit: %i, energy: %i\n", cur_player[i].name, cur_player[i].position ,smmObj_getNodeName(boardPtr), cur_player[i].accumCredit, cur_player[i].energy );
+   		}
    	}
 	printf("========================== PLAYER STATUS ==========================\n");
 		
@@ -178,7 +186,8 @@ int rolldie(int player) // 주사위를 굴리는 함수
 {
     char c;
     printf(" This is %s's turn :::: Press any key to roll a die (press g to see grade): ", cur_player[player].name);
-    c = getchar(); // 플레이어가 주사위를 굴림  
+    scanf("%s", &c); // 플레이어가 주사위를 굴림  
+    printf("\n");
     fflush(stdin);
     
 
@@ -258,12 +267,11 @@ smmObjGrade_e takeLecture(int player, char *lectureName, int type, int credit, i
 				int flag_play = 1; 
 				while(flag_play == 1) // 제대로된 입력을 받을때까지 반복 
 				{
-					char input[50]; // 문자 입력받는 변수 설정  
+					char input[100]; // 문자 입력받는 변수 설정  
 						
-					printf(" %s %s (credit:%i, energy:%i) starts! are you going to join? or drop? :", lectureName, smmObj_getTypeName(type), credit, energy);
-							
-					scanf("%s", &input); 
-					printf("\n");
+					printf(" %s %s (credit:%i, energy:%i) starts! are you going to join? or drop? :", lectureName, smmObj_getTypeName(type), credit, energy);		
+					scanf("%s", input);
+		
 					
 					if(strcmp(input, "join") == 0) // join을 입력 받았을 경우 
 					{
@@ -274,7 +282,7 @@ smmObjGrade_e takeLecture(int player, char *lectureName, int type, int credit, i
 						void *gradePtr = smmObj_genObject(lectureName, smmObjType_grade ,0, credit, 0, rand()%(smmObjGrade_Cm+1));
        					smmdb_addTail(LISTNO_OFFSET_GRADE + player, gradePtr);
        							
-       					printf(" %s successfully takes the lecture %s with grade %s (average : %i), remained energy : %i\n)", cur_player[player].name, lectureName, gradeStrings[smmObj_getNodeGrade(gradePtr)], 0 , cur_player[player].energy);
+       					printf(" %s successfully takes the lecture %s with grade %s (average : %i), remained energy : %i\n", cur_player[player].name, lectureName, gradeStrings[smmObj_getNodeGrade(gradePtr)], 0 , cur_player[player].energy);
 						//grade average 구하기  
 						flag_play = 0;
 					}	
@@ -313,11 +321,9 @@ int do_experiment(int player, int threshold, int energy) // 실험실에 갇혔을 경우
     	//주사위 굴려서 기준값 이상이 되면 탈출
    		{
 			
-			int challenge_value = rand()%MAX_DIE+1; //도전값 랜덤 뽑기 
-			int rolldice_num; // 도전값 굴리기 위한 변수  
+			int challenge_value = rand()%MAX_DIE+1; //도전값 랜덤 뽑기  
 			printf("-> Experiment time! Let's see if you can satisfy professor (threshold: %i)\nPress any key to roll a die (press g to see grade):", cur_player[player].threshold); 
-			scanf("%i", &rolldice_num);
-			printf("\n");
+			getchar();
 		
    			if(challenge_value >= cur_player[player].threshold)//도전값이 기준값 이상일 경우 
    			{
@@ -346,7 +352,7 @@ void RandFestGame(int player) // 페스티벌 카드 뽑기
 {
 	if(cur_player[player].flag_graduate == 0)
 	{
-		int fest_mission_answer;
+		
 		printf(" -> mom participates to Snow Festival! press any key to pick a festival card:");
 		getchar();
 	
@@ -355,7 +361,7 @@ void RandFestGame(int player) // 페스티벌 카드 뽑기
 		cur_player[player].energy +=  smmObj_getNodeEnergy(festivalPtr); 
 		
 		printf("-> MISSION : %s !!\n(Press any key when mission is ended.)\n", smmObj_getNodeName(festivalPtr));
-		scanf("%s",&fest_mission_answer ); // 아무 값이나 입력받은 후 종료 
+		getchar(); // 아무 값이나 입력받은 후 종료 
 		
 	}
 		
@@ -419,8 +425,18 @@ void actionNode(int player)
 			//실험실칸으로 이동
 			if(cur_player[player].flag_graduate == 0)
 			{
+				int i;
+				for (i = 0; i < smmdb_len(LISTNO_NODE); i++) //해당 플레이어의 노드 리스트 순환 
+				{
+  					void *boardPtr = smmdb_getData(LISTNO_NODE, i); 
+        
+   		          	if (smmObj_getNodeType(boardPtr) == SMMNODE_TYPE_LABORATORY) // 현재 노드 개체의 타입과 SMMNODE_TYPE_LABORATORY이 같을 때  
+					{
+           				cur_player[player].position = i; //플레이어를 실험실로 이동시킴 
+        			}	
+				}
 				cur_player[player].threshold = rand()%MAX_DIE+1;
-     			cur_player[player].position = 8;
+     			
      			cur_player[player].Lab_flag = 1;
 				printf("OMG! This is experiment time!! Player %s goes to the lab.\n", cur_player[player].name);
 				break;
@@ -616,7 +632,7 @@ int main(int argc, const char * argv[])
         printPlayerStatus();
         
         //4-2. die rolling (if not in experiment)
-        if (cur_player[turn].Lab_flag == 0) 
+        if (cur_player[turn].Lab_flag == 0) //실험중이 아닐때  
         {
        		die_result = rolldie(turn);
 	    
@@ -629,7 +645,7 @@ int main(int argc, const char * argv[])
         }
         else
         {
-        	void *boardPtr = smmdb_getData(LISTNO_NODE,cur_player[turn].position);
+        	void *boardPtr = smmdb_getData(LISTNO_NODE,cur_player[turn].position); // 실험중일때 
         	do_experiment(turn, cur_player[turn].threshold,smmObj_getNodeEnergy(boardPtr) );
 		}
         //4-5. next turn
@@ -639,7 +655,7 @@ int main(int argc, const char * argv[])
    	 //ending
     printf("==============================================\n");
     printf("----------------------------------------------\n");
-    printf("                   Game End                   \n");
+    printf("              !!!Game End!!!                 \n");
     printf("----------------------------------------------\n");
     printf("==============================================\n");
     

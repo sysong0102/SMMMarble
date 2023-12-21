@@ -75,18 +75,7 @@ typedef enum smmObjNode
     C0,
     C-
 
-static char smmGradeName[SMMNODE_TYPE_MAX][MAX_CHARNAME] =
-{
-	"A+",
-	"A0",
-	"A-",
-	"B+",
-	"B0",
-	"B-",
-	"C+",
-	"C0",
-	"C-"
-};
+
 */
 /*
 char* smmObj_getNodeName(int node_nr);
@@ -94,6 +83,7 @@ int smmObj_getNodeType(int node_nr);
 int smmObj_getNodeCredit(int node_nr);
 int smmObj_getNodeEnergy(int node_nr);
 */
+
 //object generation
 void* smmObj_genObject(char* name, smmObjType_e objType, int type, int credit, int energy, smmObjGrade_e grade);
 

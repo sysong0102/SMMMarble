@@ -104,21 +104,4 @@ smmObj_getNodeGrade(void* obj)
 	smmObject_t*ptr = (smmObject_t*)obj;
 	return ptr->grade;
 }
-#if 0
 
-
-//member retrieving
-
-
-//element to string
-/*char* smmObj_getNodeName(smmNode_e type)
-{
-    return smmNodeName[type];
-}
-
-char* smmObj_getGradeName(smmGrade_e grade)
-{
-    return smmGradeName[grade];
-}
-*/
-#endif
